@@ -7,13 +7,10 @@ on:
   release:
     # Allow pre-releases
     types: [published]
-  schedule:
-    # Build the staging image everyday at 00:00 UTC
-    - cron: "0 0 * * *"
   push:
-    # Temporary workaround
     branches:
       - release
+  workflow_dispatch:
 
 env:
   # This should allow creation of docker images even in forked repositories
@@ -33,20 +30,8 @@ jobs:
         run: |
           echo "IMAGE_NAME=${REPO,,}" >> ${GITHUB_ENV}
 
-      # Using the following workaround because currently GitHub Actions
-      # does not support logical AND/OR operations on triggers
-      # It's currently not possible to have `branches` under the `schedule` trigger
-      - name: Checkout the release branch (on release)
-        if: ${{ github.event_name == 'release' || github.event_name == 'push' }}
+      - name: Checkout repository
         uses: actions/checkout@v4.1.2
-        with:
-          ref: "release"
-
-      - name: Checkout the staging branch
-        if: ${{ github.event_name == 'schedule' }}
-        uses: actions/checkout@v4.1.2
-        with:
-          ref: "staging"
 
       # Get current branch name
       # This is also part of the workaround for Actions not allowing logical
@@ -70,7 +55,7 @@ jobs:
           # Latest tag if the branch is release and the workflow is triggered by a push
           tags: |
             ${{ github.event_name == 'release' && github.ref_name || env.BRANCH_NAME }}
-            ${{ github.event_name == 'push' && env.BRANCH_NAME == 'release' && 'latest' || '' }}
+            ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && env.BRANCH_NAME == 'release' && 'latest' || '' }}
 
       # Login into package repository as the person who created the release
       - name: Log in to the Container registry
