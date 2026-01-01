@@ -1,6 +1,7 @@
 # This workflow will publish a docker image for every full release to the GitHub package repository
+# Optimized to use Blacksmith runners and actions for faster multi-arch builds.
 
-name: Create Docker Image (Release and Staging)
+name: Create Docker Image (Blacksmith Runner)
 
 on:
   release:
@@ -21,7 +22,7 @@ env:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2204
     permissions:
       contents: read
       packages: write
@@ -55,12 +56,9 @@ jobs:
         run: |
           echo "BRANCH_NAME=$(git rev-parse --abbrev-ref HEAD)" >> ${GITHUB_ENV}
 
-      # Setting up QEMU for multi-arch image build
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+      # Replace QEMU and Buildx setup with Blacksmith's optimized setup
+      - name: Set up Docker Builder (Blacksmith)
+        uses: useblacksmith/setup-docker-builder@v1
 
       - name: Extract metadata (tags, labels) for the image
         uses: docker/metadata-action@v5.5.1
@@ -82,11 +80,9 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      # Build docker image using dockerfile for amd64 and arm64
-      # Tag it with branch name
-      # Assumes branch name is the version number
-      - name: Build and push
-        uses: docker/build-push-action@v5.3.0
+      # Build docker image using Blacksmith's optimized build action
+      - name: Build and push (Blacksmith)
+        uses: useblacksmith/build-push-action@v2
         with:
           context: .
           platforms: linux/amd64,linux/arm64
